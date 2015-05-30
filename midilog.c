@@ -81,19 +81,43 @@ void checkForMidiDeviceChanges(){
 
 	for(i = 0; i < n; i++){
 		if(updateList[i].has_handle == 0){
-			struct midi_in_device *newDevice = calloc(1, sizeof(struct midi_in_device));
-			if(newDevice == NULL){
+			MMRESULT result;
+			struct midi_in_device *newDevice;
+			
+			newDevice = calloc(1, sizeof(struct midi_in_device));
+			if(newDevice != NULL){
+				newDevice->connected = 1;
+
+				result = midiInGetDevCaps(i, &newDevice->caps, sizeof(MIDIINCAPS));
+				if(result == MMSYSERR_NOERROR){
+					result = midiInOpen(&newDevice->hmi, i, (DWORD_PTR)MyMidiInProc, (DWORD_PTR)newDevice, CALLBACK_FUNCTION);
+					if(result == MMSYSERR_NOERROR){
+						result = midiInStart(newDevice->hmi);
+						if(result == MMSYSERR_NOERROR){
+							newDevice->next = midiDeviceList;
+							midiDeviceList = newDevice;
+							printf("Connected: \"%s\"\n", newDevice->caps.szPname);
+						} else {
+							free(newDevice);
+							printf("midiInStart() error\n");
+							continue;
+						}
+					} else {
+						free(newDevice);
+						printf("midiInOpen() error\n");
+						continue;
+					}
+				} else {
+					free(newDevice);
+					printf("midiInGetDevCaps() error\n");
+					continue;
+				}
+
+			} else {
 				printf("MEMORY ERROR\n");
 				exit(1);
 			}
 
-			newDevice->connected = 1;
-			newDevice->next = midiDeviceList;
-			midiDeviceList = newDevice;
-			midiInGetDevCaps(i, &newDevice->caps, sizeof(MIDIINCAPS));
-			midiInOpen(&newDevice->hmi, i, (DWORD_PTR)MyMidiInProc, (DWORD_PTR)newDevice, CALLBACK_FUNCTION);
-			midiInStart(newDevice->hmi);
-			printf("Connected: \"%s\"\n", newDevice->caps.szPname);
 		}
 	}
 }
