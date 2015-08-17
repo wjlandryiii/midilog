@@ -83,13 +83,14 @@ void checkForMidiDeviceChanges(){
 		if(updateList[i].has_handle == 0){
 			MMRESULT result;
 			struct midi_in_device *newDevice;
-			
+
 			newDevice = calloc(1, sizeof(struct midi_in_device));
 			if(newDevice != NULL){
 				newDevice->connected = 1;
 
 				result = midiInGetDevCaps(i, &newDevice->caps, sizeof(MIDIINCAPS));
 				if(result == MMSYSERR_NOERROR){
+					printf("Trying to connect to: %s\n", newDevice->caps.szPname);
 					result = midiInOpen(&newDevice->hmi, i, (DWORD_PTR)MyMidiInProc, (DWORD_PTR)newDevice, CALLBACK_FUNCTION);
 					if(result == MMSYSERR_NOERROR){
 						result = midiInStart(newDevice->hmi);
